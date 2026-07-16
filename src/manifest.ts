@@ -11,7 +11,7 @@ export const manifest = defineManifest<Record<never, never>, Catalog>()({
     accent: "#dc2626",
     category: "testing",
     description:
-      "Adversarial conformance suites for agent authorization, execution leases, capability scope, replay, races, destinations, and task ownership.",
+      "Adversarial conformance suites for agent authorization, execution leases, capability scope, replay, races, destinations, task ownership, and the A2A, MCP, Arazzo, and WebMCP standards.",
     docsUrl: "https://github.com/absolutejs/agent-conformance",
     name: "@absolutejs/agent-conformance",
     tagline: "Prove an agent boundary fails safely.",

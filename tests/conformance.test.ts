@@ -2,10 +2,14 @@ import { describe, expect, test } from "bun:test";
 import {
   createAgentCertification,
   assertConformance,
+  runA2aConformance,
+  runArazzoConformance,
   runCapabilityConformance,
   runControlConformance,
   runExecutionConformance,
+  runMcpConformance,
   runTaskConformance,
+  runWebMcpConformance,
   type CapabilityConformanceHarness,
 } from "../src";
 
@@ -124,5 +128,56 @@ describe("agent conformance runners", () => {
       digest: certificate.digest,
       kid: "release-key",
     });
+  });
+
+  test("runs the accepted and emerging agent protocol profiles", async () => {
+    const yes = async () => true;
+    const reports = await Promise.all([
+      runA2aConformance(() => ({
+        crossCallerTaskHidden: yes,
+        protocolVersionEnforced: yes,
+        requiredExtensionEnforced: yes,
+        terminalSubscriptionRejected: yes,
+        unsafePushUrlRejected: yes,
+      })),
+      runMcpConformance(() => ({
+        negotiatedVersionEnforced: yes,
+        taskOwnerIsolation: yes,
+        unknownSessionRejected: yes,
+        unsafeElicitationUrlRejected: yes,
+        urlElicitationRequiresCapability: yes,
+      })),
+      runArazzoConformance(() => ({
+        cycleRejected: yes,
+        dependenciesRespected: yes,
+        insecureDiscoveryRejected: yes,
+        policyRunsBeforeEffect: yes,
+        unsupportedFailsBeforeEffect: yes,
+      })),
+      runWebMcpConformance(() => ({
+        abortUnregisters: yes,
+        crossOriginRestricted: yes,
+        invalidInputDeniedBeforeEffect: yes,
+        missingPolicyDenied: yes,
+        poisonedMetadataRejected: yes,
+      })),
+    ]);
+    expect(reports.map(({ failed }) => failed)).toEqual([0, 0, 0, 0]);
+    expect(reports.map(({ passed }) => passed)).toEqual([5, 5, 5, 5]);
+  });
+
+  test("reports a standards vulnerability without hiding it", async () => {
+    const yes = async () => true;
+    const result = await runWebMcpConformance(() => ({
+      abortUnregisters: yes,
+      crossOriginRestricted: yes,
+      invalidInputDeniedBeforeEffect: yes,
+      missingPolicyDenied: async () => false,
+      poisonedMetadataRejected: yes,
+    }));
+    expect(result.failed).toBe(1);
+    expect(result.results.find(({ passed }) => !passed)?.name).toBe(
+      "webmcp/default-deny",
+    );
   });
 });

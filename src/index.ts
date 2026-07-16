@@ -445,6 +445,140 @@ export const runInboxConformance = async (
     }),
   ]);
 
+export type A2aConformanceHarness = {
+  crossCallerTaskHidden: () => Promise<boolean>;
+  requiredExtensionEnforced: () => Promise<boolean>;
+  protocolVersionEnforced: () => Promise<boolean>;
+  terminalSubscriptionRejected: () => Promise<boolean>;
+  unsafePushUrlRejected: () => Promise<boolean>;
+};
+export const runA2aConformance = async (
+  create: () => A2aConformanceHarness | Promise<A2aConformanceHarness>,
+) =>
+  report("a2a-1.0", [
+    await scenario("a2a/protocol-version", async () => {
+      if (!(await (await create()).protocolVersionEnforced()))
+        throw new Error("A2A-Version was not enforced");
+    }),
+    await scenario("a2a/task-owner-isolation", async () => {
+      if (!(await (await create()).crossCallerTaskHidden()))
+        throw new Error("A2A task crossed an authorization boundary");
+    }),
+    await scenario("a2a/required-extension", async () => {
+      if (!(await (await create()).requiredExtensionEnforced()))
+        throw new Error("Required A2A extension was ignored");
+    }),
+    await scenario("a2a/terminal-subscription", async () => {
+      if (!(await (await create()).terminalSubscriptionRejected()))
+        throw new Error("Terminal A2A task accepted a subscription");
+    }),
+    await scenario("a2a/push-url", async () => {
+      if (!(await (await create()).unsafePushUrlRejected()))
+        throw new Error("Unsafe A2A push destination was accepted");
+    }),
+  ]);
+
+export type McpConformanceHarness = {
+  negotiatedVersionEnforced: () => Promise<boolean>;
+  taskOwnerIsolation: () => Promise<boolean>;
+  unknownSessionRejected: () => Promise<boolean>;
+  unsafeElicitationUrlRejected: () => Promise<boolean>;
+  urlElicitationRequiresCapability: () => Promise<boolean>;
+};
+export const runMcpConformance = async (
+  create: () => McpConformanceHarness | Promise<McpConformanceHarness>,
+) =>
+  report("mcp-2025-11-25", [
+    await scenario("mcp/negotiated-version", async () => {
+      if (!(await (await create()).negotiatedVersionEnforced()))
+        throw new Error("Negotiated MCP-Protocol-Version was not enforced");
+    }),
+    await scenario("mcp/session-binding", async () => {
+      if (!(await (await create()).unknownSessionRejected()))
+        throw new Error("Unknown MCP session was accepted");
+    }),
+    await scenario("mcp/task-owner-isolation", async () => {
+      if (!(await (await create()).taskOwnerIsolation()))
+        throw new Error("MCP task crossed an authorization boundary");
+    }),
+    await scenario("mcp/url-elicitation-capability", async () => {
+      if (!(await (await create()).urlElicitationRequiresCapability()))
+        throw new Error(
+          "URL elicitation bypassed client capability negotiation",
+        );
+    }),
+    await scenario("mcp/url-elicitation-destination", async () => {
+      if (!(await (await create()).unsafeElicitationUrlRejected()))
+        throw new Error("Unsafe URL elicitation destination was accepted");
+    }),
+  ]);
+
+export type ArazzoConformanceHarness = {
+  cycleRejected: () => Promise<boolean>;
+  dependenciesRespected: () => Promise<boolean>;
+  insecureDiscoveryRejected: () => Promise<boolean>;
+  policyRunsBeforeEffect: () => Promise<boolean>;
+  unsupportedFailsBeforeEffect: () => Promise<boolean>;
+};
+export const runArazzoConformance = async (
+  create: () => ArazzoConformanceHarness | Promise<ArazzoConformanceHarness>,
+) =>
+  report("arazzo-1.1", [
+    await scenario("arazzo/dependency-order", async () => {
+      if (!(await (await create()).dependenciesRespected()))
+        throw new Error("Arazzo explicit or implicit dependency was ignored");
+    }),
+    await scenario("arazzo/cycle", async () => {
+      if (!(await (await create()).cycleRejected()))
+        throw new Error("Cyclic Arazzo workflow was accepted");
+    }),
+    await scenario("arazzo/policy-before-effect", async () => {
+      if (!(await (await create()).policyRunsBeforeEffect()))
+        throw new Error("Arazzo effect ran before policy");
+    }),
+    await scenario("arazzo/unsupported-before-effect", async () => {
+      if (!(await (await create()).unsupportedFailsBeforeEffect()))
+        throw new Error("Unsupported Arazzo behavior partially executed");
+    }),
+    await scenario("arazzo/discovery-transport", async () => {
+      if (!(await (await create()).insecureDiscoveryRejected()))
+        throw new Error("Insecure Arazzo discovery was accepted");
+    }),
+  ]);
+
+export type WebMcpConformanceHarness = {
+  abortUnregisters: () => Promise<boolean>;
+  crossOriginRestricted: () => Promise<boolean>;
+  invalidInputDeniedBeforeEffect: () => Promise<boolean>;
+  missingPolicyDenied: () => Promise<boolean>;
+  poisonedMetadataRejected: () => Promise<boolean>;
+};
+export const runWebMcpConformance = async (
+  create: () => WebMcpConformanceHarness | Promise<WebMcpConformanceHarness>,
+) =>
+  report("webmcp-2026-07-draft", [
+    await scenario("webmcp/input-before-effect", async () => {
+      if (!(await (await create()).invalidInputDeniedBeforeEffect()))
+        throw new Error("Invalid WebMCP input reached a tool effect");
+    }),
+    await scenario("webmcp/default-deny", async () => {
+      if (!(await (await create()).missingPolicyDenied()))
+        throw new Error("WebMCP execution succeeded without policy");
+    }),
+    await scenario("webmcp/metadata-poisoning", async () => {
+      if (!(await (await create()).poisonedMetadataRejected()))
+        throw new Error("Poisoned WebMCP metadata was accepted");
+    }),
+    await scenario("webmcp/cross-origin", async () => {
+      if (!(await (await create()).crossOriginRestricted()))
+        throw new Error("Unsafe WebMCP exposedTo origin was accepted");
+    }),
+    await scenario("webmcp/abort-lifecycle", async () => {
+      if (!(await (await create()).abortUnregisters()))
+        throw new Error("Aborted WebMCP tool remained registered");
+    }),
+  ]);
+
 export type AgentCertification = {
   subject: { name: string; version: string };
   profile: "absolutejs-agent-first-1";
@@ -521,4 +655,24 @@ export const conformanceCatalog = [
   "inbox/deduplication",
   "inbox/lease-race",
   "inbox/schedule-crash",
+  "a2a/protocol-version",
+  "a2a/task-owner-isolation",
+  "a2a/required-extension",
+  "a2a/terminal-subscription",
+  "a2a/push-url",
+  "mcp/negotiated-version",
+  "mcp/session-binding",
+  "mcp/task-owner-isolation",
+  "mcp/url-elicitation-capability",
+  "mcp/url-elicitation-destination",
+  "arazzo/dependency-order",
+  "arazzo/cycle",
+  "arazzo/policy-before-effect",
+  "arazzo/unsupported-before-effect",
+  "arazzo/discovery-transport",
+  "webmcp/input-before-effect",
+  "webmcp/default-deny",
+  "webmcp/metadata-poisoning",
+  "webmcp/cross-origin",
+  "webmcp/abort-lifecycle",
 ] as const;

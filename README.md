@@ -25,6 +25,21 @@ be combined into a deterministic, optionally signed
 `absolutejs-agent-first-1` certification artifact and linked from an agent's
 public discovery descriptor.
 
+Version 0.4 adds provider-neutral conformance harnesses for A2A 1.0, MCP
+2025-11-25, Arazzo 1.1, and the July 2026 WebMCP draft. They test protocol
+negotiation, task/session isolation, required extensions, unsafe callback URLs,
+dependency ordering, policy-before-effect, unsupported-feature atomicity,
+input validation, metadata poisoning, cross-origin exposure, and abort cleanup.
+
+```ts
+import {
+  runA2aConformance,
+  runArazzoConformance,
+  runMcpConformance,
+  runWebMcpConformance,
+} from "@absolutejs/agent-conformance";
+```
+
 Implement only the harnesses relevant to your package:
 
 - `ActionConformanceHarness` for approval binding and execution leases.

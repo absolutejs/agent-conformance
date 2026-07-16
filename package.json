@@ -1,7 +1,7 @@
 {
   "name": "@absolutejs/agent-conformance",
-  "version": "0.3.0",
-  "description": "Provider-neutral adversarial conformance suites for agent actions, capabilities, tasks, credential destinations, replay, and race safety.",
+  "version": "0.4.0",
+  "description": "Provider-neutral adversarial conformance for agent security plus A2A, MCP, Arazzo, and WebMCP standards.",
   "type": "module",
   "license": "MIT",
   "author": "Alex Kahn",
@@ -46,7 +46,7 @@
     "release": "bun run format && bun run check:package && bun publish"
   },
   "dependencies": {
-    "@absolutejs/manifest": "^0.2.0",
+    "@absolutejs/manifest": "^0.3.0",
     "@sinclair/typebox": "^0.34.0"
   },
   "devDependencies": {
