@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  createAgentCertification,
   assertConformance,
   runCapabilityConformance,
   runControlConformance,
@@ -107,5 +108,21 @@ describe("agent conformance runners", () => {
         }))
       ).failed,
     ).toBe(0);
+  });
+
+  test("emits a deterministic signed certification artifact", async () => {
+    const report = await runCapabilityConformance(capabilityHarness);
+    const certificate = await createAgentCertification({
+      subject: { name: "agent.example", version: "1.0.0" },
+      reports: [report],
+      issuedAt: "2026-07-15T00:00:00.000Z",
+      sign: (digest) => ({ digest, kid: "release-key" }),
+    });
+    expect(certificate.passed).toBe(true);
+    expect(certificate.digest).toStartWith("sha256:");
+    expect(certificate.proof).toEqual({
+      digest: certificate.digest,
+      kid: "release-key",
+    });
   });
 });

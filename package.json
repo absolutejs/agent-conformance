@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/agent-conformance",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Provider-neutral adversarial conformance suites for agent actions, capabilities, tasks, credential destinations, replay, and race safety.",
   "type": "module",
   "license": "MIT",
@@ -38,7 +38,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "rm -rf dist && bun build src/index.ts src/manifest.ts --outdir dist --root src --sourcemap --target=bun && tsc --project tsconfig.build.json && absolute-manifest emit",
+    "build": "rm -rf dist && bun build src/index.ts src/manifest.ts --outdir dist --root src --sourcemap --target=bun --external @absolutejs/manifest --external @sinclair/typebox && tsc --project tsconfig.build.json && absolute-manifest emit",
     "typecheck": "tsc --noEmit",
     "test": "bun test tests/",
     "format": "prettier --write \"./**/*.{ts,json,md}\"",

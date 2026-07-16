@@ -19,6 +19,12 @@ assertConformance(report); // throws with the complete report when any case fail
 The runners return data rather than depending on a test framework, so they work
 inside Bun test, Vitest, Jest, CI scripts, or provider certification jobs.
 
+Version 0.3 adds discovery signature/search, durable runtime recovery/budget,
+provenance/taint, scoped memory, and verified inbox suites. Passing reports can
+be combined into a deterministic, optionally signed
+`absolutejs-agent-first-1` certification artifact and linked from an agent's
+public discovery descriptor.
+
 Implement only the harnesses relevant to your package:
 
 - `ActionConformanceHarness` for approval binding and execution leases.

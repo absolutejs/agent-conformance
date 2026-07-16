@@ -307,6 +307,182 @@ export const runControlConformance = async (
     }),
   ]);
 
+export type DiscoveryConformanceHarness = {
+  descriptor: () => Promise<unknown>;
+  verify: (descriptor: unknown) => Promise<boolean>;
+  tamper: (descriptor: unknown) => unknown;
+  search: (query: string) => Promise<Array<{ id: string }>>;
+};
+export const runDiscoveryConformance = async (
+  create: () =>
+    DiscoveryConformanceHarness | Promise<DiscoveryConformanceHarness>,
+) =>
+  report("agent-discovery", [
+    await scenario("discovery/signed-descriptor", async () => {
+      const h = await create();
+      const descriptor = await h.descriptor();
+      if (!(await h.verify(descriptor)))
+        throw new Error("Descriptor is invalid");
+      if (await h.verify(h.tamper(descriptor)))
+        throw new Error("Tampered descriptor verified");
+    }),
+    await scenario("discovery/deterministic-search", async () => {
+      const h = await create();
+      const first = await h.search("calendar scheduling");
+      const second = await h.search("calendar scheduling");
+      if (JSON.stringify(first) !== JSON.stringify(second))
+        throw new Error("Search order is not deterministic");
+      if (new Set(first.map(({ id }) => id)).size !== first.length)
+        throw new Error("Search returned duplicate descriptors");
+    }),
+  ]);
+
+export type DurableRuntimeConformanceHarness = {
+  budgetDeniedBeforeEffect: () => Promise<boolean>;
+  cancelBeforeWork: () => Promise<boolean>;
+  recoverRequestedEffect: () => Promise<{
+    executions: number;
+    completed: boolean;
+  }>;
+};
+export const runDurableRuntimeConformance = async (
+  create: () =>
+    | DurableRuntimeConformanceHarness
+    | Promise<DurableRuntimeConformanceHarness>,
+) =>
+  report("agent-runtime", [
+    await scenario("runtime/crash-recovery-idempotency", async () => {
+      const result = await (await create()).recoverRequestedEffect();
+      if (!result.completed || result.executions !== 1)
+        throw new Error("Persisted effect was lost or executed more than once");
+    }),
+    await scenario("runtime/budget-fails-before-effect", async () => {
+      if (!(await (await create()).budgetDeniedBeforeEffect()))
+        throw new Error("Over-budget effect reached executor");
+    }),
+    await scenario("runtime/cancellation", async () => {
+      if (!(await (await create()).cancelBeforeWork()))
+        throw new Error("Cancelled run reached driver");
+    }),
+  ]);
+
+export type TrustConformanceHarness = {
+  externalInstructionDenied: () => Promise<boolean>;
+  taintSurvivesDerivation: () => Promise<boolean>;
+  secretDeniedAtActionSink: () => Promise<boolean>;
+};
+export const runTrustConformance = async (
+  create: () => TrustConformanceHarness | Promise<TrustConformanceHarness>,
+) =>
+  report("agent-trust", [
+    await scenario("trust/external-data-is-not-instruction", async () => {
+      if (!(await (await create()).externalInstructionDenied()))
+        throw new Error("External data gained instruction authority");
+    }),
+    await scenario("trust/taint-propagation", async () => {
+      if (!(await (await create()).taintSurvivesDerivation()))
+        throw new Error("Derived output lost taint");
+    }),
+    await scenario("trust/secret-action-sink", async () => {
+      if (!(await (await create()).secretDeniedAtActionSink()))
+        throw new Error("Secret reached action sink");
+    }),
+  ]);
+
+export type MemoryConformanceHarness = {
+  crossTenantDenied: () => Promise<boolean>;
+  expiredInvisible: () => Promise<boolean>;
+  eraseSubject: () => Promise<boolean>;
+  poisonedWriteDenied: () => Promise<boolean>;
+};
+export const runMemoryConformance = async (
+  create: () => MemoryConformanceHarness | Promise<MemoryConformanceHarness>,
+) =>
+  report("agent-memory", [
+    await scenario("memory/cross-tenant", async () => {
+      if (!(await (await create()).crossTenantDenied()))
+        throw new Error("Cross-tenant memory read succeeded");
+    }),
+    await scenario("memory/expiration", async () => {
+      if (!(await (await create()).expiredInvisible()))
+        throw new Error("Expired memory remained visible");
+    }),
+    await scenario("memory/subject-erasure", async () => {
+      if (!(await (await create()).eraseSubject()))
+        throw new Error("Subject erasure incomplete");
+    }),
+    await scenario("memory/poisoning", async () => {
+      if (!(await (await create()).poisonedWriteDenied()))
+        throw new Error("Poisoned memory persisted");
+    }),
+  ]);
+
+export type InboxConformanceHarness = {
+  duplicateDeliveredOnce: () => Promise<boolean>;
+  invalidSignatureDenied: () => Promise<boolean>;
+  leaseRaceHasOneWinner: () => Promise<boolean>;
+  scheduleCrashRecovered: () => Promise<boolean>;
+};
+export const runInboxConformance = async (
+  create: () => InboxConformanceHarness | Promise<InboxConformanceHarness>,
+) =>
+  report("agent-inbox", [
+    await scenario("inbox/signature", async () => {
+      if (!(await (await create()).invalidSignatureDenied()))
+        throw new Error("Invalid event was accepted");
+    }),
+    await scenario("inbox/deduplication", async () => {
+      if (!(await (await create()).duplicateDeliveredOnce()))
+        throw new Error("Duplicate event was delivered twice");
+    }),
+    await scenario("inbox/lease-race", async () => {
+      if (!(await (await create()).leaseRaceHasOneWinner()))
+        throw new Error("More than one worker won a lease");
+    }),
+    await scenario("inbox/schedule-crash", async () => {
+      if (!(await (await create()).scheduleCrashRecovered()))
+        throw new Error("Schedule occurrence was lost or duplicated");
+    }),
+  ]);
+
+export type AgentCertification = {
+  subject: { name: string; version: string };
+  profile: "absolutejs-agent-first-1";
+  issuedAt: string;
+  passed: boolean;
+  reports: readonly ConformanceReport[];
+  digest: string;
+  proof?: unknown;
+};
+const stable = (value: unknown): string =>
+  JSON.stringify(value, (_key, item) =>
+    item && typeof item === "object" && !Array.isArray(item)
+      ? Object.fromEntries(
+          Object.entries(item).sort(([a], [b]) => a.localeCompare(b)),
+        )
+      : item,
+  );
+export const createAgentCertification = async (input: {
+  subject: AgentCertification["subject"];
+  reports: readonly ConformanceReport[];
+  issuedAt?: string;
+  sign?: (digest: string) => unknown | Promise<unknown>;
+}): Promise<AgentCertification> => {
+  const base = {
+    subject: input.subject,
+    profile: "absolutejs-agent-first-1" as const,
+    issuedAt: input.issuedAt ?? new Date().toISOString(),
+    passed: input.reports.every(({ failed }) => failed === 0),
+    reports: input.reports,
+  };
+  const digest = `sha256:${Buffer.from(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(stable(base)))).toString("hex")}`;
+  return {
+    ...base,
+    digest,
+    ...(input.sign ? { proof: await input.sign(digest) } : {}),
+  };
+};
+
 export const assertConformance = (result: ConformanceReport) => {
   if (result.failed > 0) throw new ConformanceError(result);
   return result;
@@ -329,4 +505,20 @@ export const conformanceCatalog = [
   "execution/idempotent-enqueue",
   "execution/unknown-not-retried",
   "control/kill-switch-first",
+  "discovery/signed-descriptor",
+  "discovery/deterministic-search",
+  "runtime/crash-recovery-idempotency",
+  "runtime/budget-fails-before-effect",
+  "runtime/cancellation",
+  "trust/external-data-is-not-instruction",
+  "trust/taint-propagation",
+  "trust/secret-action-sink",
+  "memory/cross-tenant",
+  "memory/expiration",
+  "memory/subject-erasure",
+  "memory/poisoning",
+  "inbox/signature",
+  "inbox/deduplication",
+  "inbox/lease-race",
+  "inbox/schedule-crash",
 ] as const;
