@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   assertConformance,
   runCapabilityConformance,
+  runControlConformance,
+  runExecutionConformance,
   runTaskConformance,
   type CapabilityConformanceHarness,
 } from "../src";
@@ -70,5 +72,40 @@ describe("agent conformance runners", () => {
     }));
     expect(result.failed).toBe(1);
     expect(() => assertConformance(result)).toThrow("conformance scenario");
+  });
+
+  test("covers execution quarantine and kill-switch ordering", async () => {
+    const effects = new Map<string, string>();
+    expect(
+      (
+        await runExecutionConformance(() => ({
+          enqueue: async (key) => {
+            if (!effects.has(key)) effects.set(key, "pending");
+            return key;
+          },
+          run: async (id, outcome = "success") => {
+            effects.set(id, outcome);
+          },
+          status: async (id) => effects.get(id) ?? "missing",
+          reconcile: async (id) => {
+            effects.set(id, "succeeded");
+          },
+        }))
+      ).failed,
+    ).toBe(0);
+    let disabled = false;
+    let observed = false;
+    expect(
+      (
+        await runControlConformance(() => ({
+          disabled: async () => disabled,
+          revoke: async () => {
+            disabled = true;
+            observed = disabled;
+          },
+          sourceSawDisabled: () => observed,
+        }))
+      ).failed,
+    ).toBe(0);
   });
 });

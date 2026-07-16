@@ -1,6 +1,6 @@
 {
   "name": "@absolutejs/agent-conformance",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Provider-neutral adversarial conformance suites for agent actions, capabilities, tasks, credential destinations, replay, and race safety.",
   "type": "module",
   "license": "MIT",

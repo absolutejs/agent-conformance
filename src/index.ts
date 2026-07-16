@@ -231,6 +231,82 @@ export const runTaskConformance = async (
   return report("agent-task", results);
 };
 
+export type EgressConformanceHarness = {
+  request: (
+    url: string,
+    options?: { redirectTo?: string; credential?: string },
+  ) => Promise<{ credentialSeen?: string }>;
+};
+export const runEgressConformance = async (
+  create: () => Promise<EgressConformanceHarness> | EgressConformanceHarness,
+) => {
+  const results = await Promise.all([
+    scenario("egress/private-network", async () => {
+      const harness = await create();
+      await rejects(() => harness.request("https://169.254.169.254/latest"));
+    }),
+    scenario("egress/lookalike-host", async () => {
+      const harness = await create();
+      await rejects(() => harness.request("https://api.example.com.evil.test"));
+    }),
+    scenario("egress/redirect-credential-isolation", async () => {
+      const harness = await create();
+      const result = await harness.request("https://api.example.com", {
+        credential: "secret",
+        redirectTo: "https://cdn.example.net",
+      });
+      if (result.credentialSeen !== undefined)
+        throw new Error("Credential leaked across redirect");
+    }),
+  ]);
+  return report("agent-egress", results);
+};
+
+export type ExecutionConformanceHarness = {
+  enqueue: (idempotencyKey: string) => Promise<string>;
+  reconcile: (effectId: string) => Promise<void>;
+  run: (effectId: string, outcome?: "success" | "unknown") => Promise<void>;
+  status: (effectId: string) => Promise<string>;
+};
+export const runExecutionConformance = async (
+  create: () =>
+    Promise<ExecutionConformanceHarness> | ExecutionConformanceHarness,
+) => {
+  const results = await Promise.all([
+    scenario("execution/idempotent-enqueue", async () => {
+      const h = await create();
+      const [a, b] = await Promise.all([h.enqueue("same"), h.enqueue("same")]);
+      if (a !== b) throw new Error("Duplicate effect created");
+    }),
+    scenario("execution/unknown-not-retried", async () => {
+      const h = await create();
+      const id = await h.enqueue("unknown");
+      await h.run(id, "unknown");
+      if ((await h.status(id)) !== "unknown")
+        throw new Error("Unknown outcome was not quarantined");
+      await h.reconcile(id);
+    }),
+  ]);
+  return report("agent-execution", results);
+};
+
+export type ControlConformanceHarness = {
+  disabled: (agentId: string) => Promise<boolean>;
+  revoke: (agentId: string) => Promise<void>;
+  sourceSawDisabled: () => boolean;
+};
+export const runControlConformance = async (
+  create: () => Promise<ControlConformanceHarness> | ControlConformanceHarness,
+) =>
+  report("agent-control", [
+    await scenario("control/kill-switch-first", async () => {
+      const h = await create();
+      await h.revoke("agent-a");
+      if (!h.sourceSawDisabled() || !(await h.disabled("agent-a")))
+        throw new Error("Kill switch was not active before cleanup");
+    }),
+  ]);
+
 export const assertConformance = (result: ConformanceReport) => {
   if (result.failed > 0) throw new ConformanceError(result);
   return result;
@@ -247,4 +323,10 @@ export const conformanceCatalog = [
   "capability/scope-escalation",
   "capability/lookalike-origin",
   "task/owner-isolation",
+  "egress/private-network",
+  "egress/lookalike-host",
+  "egress/redirect-credential-isolation",
+  "execution/idempotent-enqueue",
+  "execution/unknown-not-retried",
+  "control/kill-switch-first",
 ] as const;
