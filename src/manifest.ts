@@ -7,6 +7,23 @@ const tool = toolFactory<Catalog>();
 
 export const manifest = defineManifest<Record<never, never>, Catalog>()({
   contract: 2,
+  discovery: {
+    audiences: ["agent-hosts", "security-teams", "ci-systems"],
+    intents: [
+      "test agent authorization",
+      "attack agent protocol boundaries",
+      "certify an agent host",
+    ],
+    keywords: [
+      "agents",
+      "conformance",
+      "security",
+      "replay",
+      "authorization",
+      "ci",
+    ],
+    protocols: ["MCP", "A2A 1.0", "OAuth 2.0", "AuthZEN"],
+  },
   identity: {
     accent: "#dc2626",
     category: "testing",
