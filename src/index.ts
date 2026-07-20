@@ -290,6 +290,75 @@ export const runExecutionConformance = async (
   return report("agent-execution", results);
 };
 
+export type DurableExecutionBoundaryConformanceHarness = {
+  concurrentDispatchExecutesOnce: () => Promise<boolean>;
+  crashRecoveryCompletesOnce: () => Promise<boolean>;
+  drainStopsClaimsUntilResume: () => Promise<boolean>;
+  expiredLeaseRecoversOnce: () => Promise<boolean>;
+  mutatedInputIsRejected: () => Promise<boolean>;
+  replayIsRejected: () => Promise<boolean>;
+  tenantInventoryIsIsolated: () => Promise<boolean>;
+  unknownOutcomeRequiresReconciliation: () => Promise<boolean>;
+};
+
+export const runDurableExecutionBoundaryConformance = async (
+  create: () =>
+    | DurableExecutionBoundaryConformanceHarness
+    | Promise<DurableExecutionBoundaryConformanceHarness>,
+) => {
+  const check = async (
+    name: string,
+    assertion: keyof DurableExecutionBoundaryConformanceHarness,
+    failure: string,
+  ) =>
+    scenario(name, async () => {
+      if (!(await (await create())[assertion]())) throw new Error(failure);
+    });
+
+  return report("agent-durable-execution-boundary", [
+    await check(
+      "execution-boundary/replay",
+      "replayIsRejected",
+      "A completed effect executed again",
+    ),
+    await check(
+      "execution-boundary/mutated-input",
+      "mutatedInputIsRejected",
+      "An effect executed with input that did not match its authorized digest",
+    ),
+    await check(
+      "execution-boundary/tenant-inventory",
+      "tenantInventoryIsIsolated",
+      "An effect was visible through another tenant inventory",
+    ),
+    await check(
+      "execution-boundary/concurrent-dispatch",
+      "concurrentDispatchExecutesOnce",
+      "Concurrent dispatch executed one durable effect more than once",
+    ),
+    await check(
+      "execution-boundary/expired-lease",
+      "expiredLeaseRecoversOnce",
+      "An expired worker lease was lost or produced a duplicate effect",
+    ),
+    await check(
+      "execution-boundary/crash-recovery",
+      "crashRecoveryCompletesOnce",
+      "A crash window lost or duplicated a durable effect",
+    ),
+    await check(
+      "execution-boundary/unknown-outcome",
+      "unknownOutcomeRequiresReconciliation",
+      "An unknown provider outcome was retried without reconciliation",
+    ),
+    await check(
+      "execution-boundary/drain-resume",
+      "drainStopsClaimsUntilResume",
+      "Drain accepted new work or resume failed to restore processing",
+    ),
+  ]);
+};
+
 export type ControlConformanceHarness = {
   disabled: (agentId: string) => Promise<boolean>;
   revoke: (agentId: string) => Promise<void>;
@@ -638,6 +707,14 @@ export const conformanceCatalog = [
   "egress/redirect-credential-isolation",
   "execution/idempotent-enqueue",
   "execution/unknown-not-retried",
+  "execution-boundary/replay",
+  "execution-boundary/mutated-input",
+  "execution-boundary/tenant-inventory",
+  "execution-boundary/concurrent-dispatch",
+  "execution-boundary/expired-lease",
+  "execution-boundary/crash-recovery",
+  "execution-boundary/unknown-outcome",
+  "execution-boundary/drain-resume",
   "control/kill-switch-first",
   "discovery/signed-descriptor",
   "discovery/deterministic-search",

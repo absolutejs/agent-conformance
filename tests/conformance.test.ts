@@ -6,6 +6,7 @@ import {
   runArazzoConformance,
   runCapabilityConformance,
   runControlConformance,
+  runDurableExecutionBoundaryConformance,
   runExecutionConformance,
   runMcpConformance,
   runTaskConformance,
@@ -112,6 +113,23 @@ describe("agent conformance runners", () => {
         }))
       ).failed,
     ).toBe(0);
+  });
+
+  test("covers the complete durable execution boundary", async () => {
+    const yes = async () => true;
+    const result = await runDurableExecutionBoundaryConformance(() => ({
+      concurrentDispatchExecutesOnce: yes,
+      crashRecoveryCompletesOnce: yes,
+      drainStopsClaimsUntilResume: yes,
+      expiredLeaseRecoversOnce: yes,
+      mutatedInputIsRejected: yes,
+      replayIsRejected: yes,
+      tenantInventoryIsIsolated: yes,
+      unknownOutcomeRequiresReconciliation: yes,
+    }));
+
+    expect(result.failed).toBe(0);
+    expect(result.passed).toBe(8);
   });
 
   test("emits a deterministic signed certification artifact", async () => {
