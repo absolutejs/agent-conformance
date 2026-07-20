@@ -7,6 +7,7 @@ import {
   runCapabilityConformance,
   runControlConformance,
   runDurableExecutionBoundaryConformance,
+  runEffectAdapterRegistryConformance,
   runExecutionConformance,
   runMcpConformance,
   runTaskConformance,
@@ -130,6 +131,20 @@ describe("agent conformance runners", () => {
 
     expect(result.failed).toBe(0);
     expect(result.passed).toBe(8);
+  });
+
+  test("covers certified effect adapter activation", async () => {
+    const yes = async () => true;
+    const result = await runEffectAdapterRegistryConformance(() => ({
+      descriptorDriftDeactivates: yes,
+      evidenceRevocationStopsExecution: yes,
+      outOfScopeEffectIsRejected: yes,
+      staleCertificationIsRejected: yes,
+      uncertifiedActivationIsRejected: yes,
+    }));
+
+    expect(result.failed).toBe(0);
+    expect(result.passed).toBe(5);
   });
 
   test("emits a deterministic signed certification artifact", async () => {

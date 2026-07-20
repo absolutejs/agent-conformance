@@ -359,6 +359,57 @@ export const runDurableExecutionBoundaryConformance = async (
   ]);
 };
 
+export type EffectAdapterRegistryConformanceHarness = {
+  descriptorDriftDeactivates: () => Promise<boolean>;
+  evidenceRevocationStopsExecution: () => Promise<boolean>;
+  outOfScopeEffectIsRejected: () => Promise<boolean>;
+  staleCertificationIsRejected: () => Promise<boolean>;
+  uncertifiedActivationIsRejected: () => Promise<boolean>;
+};
+
+export const runEffectAdapterRegistryConformance = async (
+  create: () =>
+    | EffectAdapterRegistryConformanceHarness
+    | Promise<EffectAdapterRegistryConformanceHarness>,
+) => {
+  const check = async (
+    name: string,
+    assertion: keyof EffectAdapterRegistryConformanceHarness,
+    failure: string,
+  ) =>
+    scenario(name, async () => {
+      if (!(await (await create())[assertion]())) throw new Error(failure);
+    });
+
+  return report("agent-effect-adapter-registry", [
+    await check(
+      "adapter-registry/uncertified-activation",
+      "uncertifiedActivationIsRejected",
+      "An uncertified effect adapter activated",
+    ),
+    await check(
+      "adapter-registry/descriptor-drift",
+      "descriptorDriftDeactivates",
+      "Descriptor drift retained certification or activation",
+    ),
+    await check(
+      "adapter-registry/stale-certification",
+      "staleCertificationIsRejected",
+      "A stale adapter certificate activated",
+    ),
+    await check(
+      "adapter-registry/effect-scope",
+      "outOfScopeEffectIsRejected",
+      "An adapter executed an undeclared effect",
+    ),
+    await check(
+      "adapter-registry/evidence-revocation",
+      "evidenceRevocationStopsExecution",
+      "Execution continued after retained evidence became invalid",
+    ),
+  ]);
+};
+
 export type ControlConformanceHarness = {
   disabled: (agentId: string) => Promise<boolean>;
   revoke: (agentId: string) => Promise<void>;
@@ -715,6 +766,11 @@ export const conformanceCatalog = [
   "execution-boundary/crash-recovery",
   "execution-boundary/unknown-outcome",
   "execution-boundary/drain-resume",
+  "adapter-registry/uncertified-activation",
+  "adapter-registry/descriptor-drift",
+  "adapter-registry/stale-certification",
+  "adapter-registry/effect-scope",
+  "adapter-registry/evidence-revocation",
   "control/kill-switch-first",
   "discovery/signed-descriptor",
   "discovery/deterministic-search",
