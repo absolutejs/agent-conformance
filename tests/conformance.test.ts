@@ -215,11 +215,12 @@ describe("agent conformance runners", () => {
       authorizationPrecedesQueryCredentials: yes,
       failuresRetainOnlySafeHealthCodes: yes,
       queryEvidenceIsNormalized: yes,
-      replicaLeasePreventsDuplicateQuery: yes,
-    }));
+		replicaLeasePreventsDuplicateQuery: yes,
+		tenantScopedRunDoesNotCrossTenant: yes,
+	}));
 
     expect(result.failed).toBe(0);
-    expect(result.passed).toBe(4);
+	expect(result.passed).toBe(5);
   });
 
   test("emits a deterministic signed certification artifact", async () => {

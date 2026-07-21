@@ -621,10 +621,11 @@ export const runEffectEvidenceConformance = async (
 };
 
 export type EffectReconciliationRuntimeConformanceHarness = {
-  authorizationPrecedesQueryCredentials: () => Promise<boolean>;
-  failuresRetainOnlySafeHealthCodes: () => Promise<boolean>;
-  queryEvidenceIsNormalized: () => Promise<boolean>;
-  replicaLeasePreventsDuplicateQuery: () => Promise<boolean>;
+	authorizationPrecedesQueryCredentials: () => Promise<boolean>;
+	failuresRetainOnlySafeHealthCodes: () => Promise<boolean>;
+	queryEvidenceIsNormalized: () => Promise<boolean>;
+	replicaLeasePreventsDuplicateQuery: () => Promise<boolean>;
+	tenantScopedRunDoesNotCrossTenant: () => Promise<boolean>;
 };
 
 export const runEffectReconciliationRuntimeConformance = async (
@@ -661,6 +662,11 @@ export const runEffectReconciliationRuntimeConformance = async (
       "effect-reconciliation/safe-health-failure",
       "failuresRetainOnlySafeHealthCodes",
       "A provider failure retained credential or raw error material",
+    ),
+    await check(
+      "effect-reconciliation/tenant-scope",
+      "tenantScopedRunDoesNotCrossTenant",
+      "A tenant-scoped reconciliation run queried another tenant's effect",
     ),
   ]);
 };
@@ -1051,6 +1057,7 @@ export const conformanceCatalog = [
   "effect-reconciliation/replica-lease",
   "effect-reconciliation/normalized-evidence",
   "effect-reconciliation/safe-health-failure",
+  "effect-reconciliation/tenant-scope",
   "control/kill-switch-first",
   "discovery/signed-descriptor",
   "discovery/deterministic-search",
