@@ -461,6 +461,57 @@ export const runEffectAdapterInstallationConformance = async (
   ]);
 };
 
+export type EffectAdapterExecutionConformanceHarness = {
+  authorizationPrecedesCredentialResolution: () => Promise<boolean>;
+  capabilityMismatchStopsExecution: () => Promise<boolean>;
+  exactCredentialsAreResolved: () => Promise<boolean>;
+  executionContextIsBound: () => Promise<boolean>;
+  unknownOutcomeIsQuarantined: () => Promise<boolean>;
+};
+
+export const runEffectAdapterExecutionConformance = async (
+  create: () =>
+    | EffectAdapterExecutionConformanceHarness
+    | Promise<EffectAdapterExecutionConformanceHarness>,
+) => {
+  const check = async (
+    name: string,
+    assertion: keyof EffectAdapterExecutionConformanceHarness,
+    failure: string,
+  ) =>
+    scenario(name, async () => {
+      if (!(await (await create())[assertion]())) throw new Error(failure);
+    });
+
+  return report("agent-effect-adapter-execution", [
+    await check(
+      "adapter-execution/authorization-before-credentials",
+      "authorizationPrecedesCredentialResolution",
+      "Credential material was resolved before installation authorization",
+    ),
+    await check(
+      "adapter-execution/exact-credential-resolution",
+      "exactCredentialsAreResolved",
+      "Execution resolved credentials outside the authorized installation",
+    ),
+    await check(
+      "adapter-execution/context-binding",
+      "executionContextIsBound",
+      "The adapter lost tenant, destination, effect, or idempotency binding",
+    ),
+    await check(
+      "adapter-execution/capability-binding",
+      "capabilityMismatchStopsExecution",
+      "A runtime adapter executed with capabilities that differed from its certified descriptor",
+    ),
+    await check(
+      "adapter-execution/unknown-outcome",
+      "unknownOutcomeIsQuarantined",
+      "An unknown provider outcome escaped execution quarantine",
+    ),
+  ]);
+};
+
 export type ControlConformanceHarness = {
   disabled: (agentId: string) => Promise<boolean>;
   revoke: (agentId: string) => Promise<void>;
@@ -822,6 +873,17 @@ export const conformanceCatalog = [
   "adapter-registry/stale-certification",
   "adapter-registry/effect-scope",
   "adapter-registry/evidence-revocation",
+
+  "adapter-installations/default-off",
+  "adapter-installations/tenant-fence",
+  "adapter-installations/descriptor-drift",
+  "adapter-installations/destination-credential-scope",
+  "adapter-installations/spend-mandate-budget",
+  "adapter-execution/authorization-before-credentials",
+  "adapter-execution/exact-credential-resolution",
+  "adapter-execution/context-binding",
+  "adapter-execution/capability-binding",
+  "adapter-execution/unknown-outcome",
   "control/kill-switch-first",
   "discovery/signed-descriptor",
   "discovery/deterministic-search",

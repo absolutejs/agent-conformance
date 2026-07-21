@@ -8,6 +8,7 @@ import {
   runControlConformance,
   runDurableExecutionBoundaryConformance,
   runEffectAdapterRegistryConformance,
+  runEffectAdapterExecutionConformance,
   runEffectAdapterInstallationConformance,
   runExecutionConformance,
   runMcpConformance,
@@ -156,6 +157,20 @@ describe("agent conformance runners", () => {
       installationStartsDisabled: yes,
       spendRequiresBoundMandateAndBudget: yes,
       tenantCannotUseAnotherInstallation: yes,
+    }));
+
+    expect(result.failed).toBe(0);
+    expect(result.passed).toBe(5);
+  });
+
+  test("covers installed effect adapter execution", async () => {
+    const yes = async () => true;
+    const result = await runEffectAdapterExecutionConformance(() => ({
+      authorizationPrecedesCredentialResolution: yes,
+      capabilityMismatchStopsExecution: yes,
+      exactCredentialsAreResolved: yes,
+      executionContextIsBound: yes,
+      unknownOutcomeIsQuarantined: yes,
     }));
 
     expect(result.failed).toBe(0);
