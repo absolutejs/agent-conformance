@@ -32,6 +32,10 @@ persistence, duplicate deliveries remain single-copy while reconciliation can
 resume after a crash, retained delivery identities cannot be rebound across
 effects or tenants, and only normalized evidence crosses the durable boundary.
 
+The reconciliation-runtime suite proves that scheduled provider queries
+authorize before resolving credentials, use a cross-replica lease, retain only
+normalized evidence, and reduce failures to safe health codes.
+
 Version 0.3 adds discovery signature/search, durable runtime recovery/budget,
 provenance/taint, scoped memory, and verified inbox suites. Passing reports can
 be combined into a deterministic, optionally signed
