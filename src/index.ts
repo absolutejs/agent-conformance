@@ -410,6 +410,57 @@ export const runEffectAdapterRegistryConformance = async (
   ]);
 };
 
+export type EffectAdapterInstallationConformanceHarness = {
+  descriptorDriftStopsInstallation: () => Promise<boolean>;
+  destinationAndCredentialScopeIsExact: () => Promise<boolean>;
+  installationStartsDisabled: () => Promise<boolean>;
+  spendRequiresBoundMandateAndBudget: () => Promise<boolean>;
+  tenantCannotUseAnotherInstallation: () => Promise<boolean>;
+};
+
+export const runEffectAdapterInstallationConformance = async (
+  create: () =>
+    | EffectAdapterInstallationConformanceHarness
+    | Promise<EffectAdapterInstallationConformanceHarness>,
+) => {
+  const check = async (
+    name: string,
+    assertion: keyof EffectAdapterInstallationConformanceHarness,
+    failure: string,
+  ) =>
+    scenario(name, async () => {
+      if (!(await (await create())[assertion]())) throw new Error(failure);
+    });
+
+  return report("agent-effect-adapter-installations", [
+    await check(
+      "adapter-installations/default-off",
+      "installationStartsDisabled",
+      "A newly configured tenant adapter installation executed before enablement",
+    ),
+    await check(
+      "adapter-installations/tenant-fence",
+      "tenantCannotUseAnotherInstallation",
+      "A tenant used another tenant's effect adapter installation",
+    ),
+    await check(
+      "adapter-installations/descriptor-drift",
+      "descriptorDriftStopsInstallation",
+      "A descriptor-pinned installation survived global adapter drift",
+    ),
+    await check(
+      "adapter-installations/destination-credential-scope",
+      "destinationAndCredentialScopeIsExact",
+      "An installation escaped its destination or credential-alias scope",
+    ),
+    await check(
+      "adapter-installations/spend-mandate-budget",
+      "spendRequiresBoundMandateAndBudget",
+      "An installation spent outside its bound mandate or per-effect ceiling",
+    ),
+  ]);
+};
+
 export type ControlConformanceHarness = {
   disabled: (agentId: string) => Promise<boolean>;
   revoke: (agentId: string) => Promise<void>;

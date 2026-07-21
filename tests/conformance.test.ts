@@ -8,6 +8,7 @@ import {
   runControlConformance,
   runDurableExecutionBoundaryConformance,
   runEffectAdapterRegistryConformance,
+  runEffectAdapterInstallationConformance,
   runExecutionConformance,
   runMcpConformance,
   runTaskConformance,
@@ -141,6 +142,20 @@ describe("agent conformance runners", () => {
       outOfScopeEffectIsRejected: yes,
       staleCertificationIsRejected: yes,
       uncertifiedActivationIsRejected: yes,
+    }));
+
+    expect(result.failed).toBe(0);
+    expect(result.passed).toBe(5);
+  });
+
+  test("covers tenant-scoped effect adapter installations", async () => {
+    const yes = async () => true;
+    const result = await runEffectAdapterInstallationConformance(() => ({
+      descriptorDriftStopsInstallation: yes,
+      destinationAndCredentialScopeIsExact: yes,
+      installationStartsDisabled: yes,
+      spendRequiresBoundMandateAndBudget: yes,
+      tenantCannotUseAnotherInstallation: yes,
     }));
 
     expect(result.failed).toBe(0);
