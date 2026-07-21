@@ -569,6 +569,51 @@ export const runEffectRecoveryConformance = async (
   ]);
 };
 
+export type EffectEvidenceConformanceHarness = {
+  duplicateDeliveryResumesReconciliation: () => Promise<boolean>;
+  evidenceBindingCannotChange: () => Promise<boolean>;
+  normalizedEvidenceExcludesRawPayload: () => Promise<boolean>;
+  signaturePrecedesPersistence: () => Promise<boolean>;
+};
+
+export const runEffectEvidenceConformance = async (
+  create: () =>
+    | EffectEvidenceConformanceHarness
+    | Promise<EffectEvidenceConformanceHarness>,
+) => {
+  const check = async (
+    name: string,
+    assertion: keyof EffectEvidenceConformanceHarness,
+    failure: string,
+  ) =>
+    scenario(name, async () => {
+      if (!(await (await create())[assertion]())) throw new Error(failure);
+    });
+
+  return report("agent-effect-evidence", [
+    await check(
+      "effect-evidence/signature-before-persistence",
+      "signaturePrecedesPersistence",
+      "Unverified provider evidence reached durable storage",
+    ),
+    await check(
+      "effect-evidence/delivery-dedup-resume",
+      "duplicateDeliveryResumesReconciliation",
+      "A duplicate delivery was retained twice or failed to resume reconciliation",
+    ),
+    await check(
+      "effect-evidence/immutable-binding",
+      "evidenceBindingCannotChange",
+      "A retained provider delivery was rebound to another effect or tenant",
+    ),
+    await check(
+      "effect-evidence/normalized-data-only",
+      "normalizedEvidenceExcludesRawPayload",
+      "Raw provider payload data crossed the normalized evidence boundary",
+    ),
+  ]);
+};
+
 export type ControlConformanceHarness = {
   disabled: (agentId: string) => Promise<boolean>;
   revoke: (agentId: string) => Promise<void>;
@@ -947,6 +992,10 @@ export const conformanceCatalog = [
   "effect-recovery/concurrent-resolution",
   "effect-recovery/explicit-retry-proof",
   "effect-recovery/append-only-history",
+  "effect-evidence/signature-before-persistence",
+  "effect-evidence/delivery-dedup-resume",
+  "effect-evidence/immutable-binding",
+  "effect-evidence/normalized-data-only",
   "control/kill-switch-first",
   "discovery/signed-descriptor",
   "discovery/deterministic-search",

@@ -10,6 +10,7 @@ import {
   runEffectAdapterRegistryConformance,
   runEffectAdapterExecutionConformance,
   runEffectAdapterInstallationConformance,
+  runEffectEvidenceConformance,
   runEffectRecoveryConformance,
   runExecutionConformance,
   runMcpConformance,
@@ -191,6 +192,19 @@ describe("agent conformance runners", () => {
 
     expect(result.failed).toBe(0);
     expect(result.passed).toBe(6);
+  });
+
+  test("covers verified provider effect evidence ingestion", async () => {
+    const yes = async () => true;
+    const result = await runEffectEvidenceConformance(() => ({
+      duplicateDeliveryResumesReconciliation: yes,
+      evidenceBindingCannotChange: yes,
+      normalizedEvidenceExcludesRawPayload: yes,
+      signaturePrecedesPersistence: yes,
+    }));
+
+    expect(result.failed).toBe(0);
+    expect(result.passed).toBe(4);
   });
 
   test("emits a deterministic signed certification artifact", async () => {

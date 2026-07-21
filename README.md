@@ -26,6 +26,11 @@ resolved, tenant/effect/destination/idempotency context reaches the driver,
 driver capabilities match the certified descriptor, and unknown provider
 outcomes enter durable quarantine.
 
+The effect-evidence suite verifies that provider signatures are checked before
+persistence, duplicate deliveries remain single-copy while reconciliation can
+resume after a crash, retained delivery identities cannot be rebound across
+effects or tenants, and only normalized evidence crosses the durable boundary.
+
 Version 0.3 adds discovery signature/search, durable runtime recovery/budget,
 provenance/taint, scoped memory, and verified inbox suites. Passing reports can
 be combined into a deterministic, optionally signed
