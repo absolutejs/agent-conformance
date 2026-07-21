@@ -35,7 +35,10 @@ effects or tenants, and only normalized evidence crosses the durable boundary.
 The reconciliation-runtime suite proves that scheduled provider queries
 authorize before resolving credentials, use a cross-replica lease, retain only
 normalized evidence, reduce failures to safe health codes, and keep an
-operator-triggered tenant run from querying another tenant's effects.
+operator-triggered tenant run from querying another tenant's effects. It also
+proves that reference-gated queries stop before credential resolution when no
+exact provider resource is retained and that stale attempts cannot quarantine
+a newer lease.
 
 Version 0.3 adds discovery signature/search, durable runtime recovery/budget,
 provenance/taint, scoped memory, and verified inbox suites. Passing reports can

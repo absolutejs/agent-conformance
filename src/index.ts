@@ -621,11 +621,13 @@ export const runEffectEvidenceConformance = async (
 };
 
 export type EffectReconciliationRuntimeConformanceHarness = {
-	authorizationPrecedesQueryCredentials: () => Promise<boolean>;
-	failuresRetainOnlySafeHealthCodes: () => Promise<boolean>;
-	queryEvidenceIsNormalized: () => Promise<boolean>;
-	replicaLeasePreventsDuplicateQuery: () => Promise<boolean>;
-	tenantScopedRunDoesNotCrossTenant: () => Promise<boolean>;
+  authorizationPrecedesQueryCredentials: () => Promise<boolean>;
+  failuresRetainOnlySafeHealthCodes: () => Promise<boolean>;
+  queryEvidenceIsNormalized: () => Promise<boolean>;
+  requiredReferencePrecedesQueryCredentials: () => Promise<boolean>;
+  replicaLeasePreventsDuplicateQuery: () => Promise<boolean>;
+  staleAttemptCannotQuarantineNewLease: () => Promise<boolean>;
+  tenantScopedRunDoesNotCrossTenant: () => Promise<boolean>;
 };
 
 export const runEffectReconciliationRuntimeConformance = async (
@@ -649,9 +651,19 @@ export const runEffectReconciliationRuntimeConformance = async (
       "A provider query resolved credentials before installation authorization",
     ),
     await check(
+      "effect-reconciliation/reference-before-credentials",
+      "requiredReferencePrecedesQueryCredentials",
+      "A provider query resolved credentials without its required provider reference",
+    ),
+    await check(
       "effect-reconciliation/replica-lease",
       "replicaLeasePreventsDuplicateQuery",
       "Concurrent reconciliation workers queried the same effect twice",
+    ),
+    await check(
+      "effect-reconciliation/stale-attempt-fence",
+      "staleAttemptCannotQuarantineNewLease",
+      "A stale execution attempt quarantined a newer leased attempt",
     ),
     await check(
       "effect-reconciliation/normalized-evidence",
@@ -1054,7 +1066,9 @@ export const conformanceCatalog = [
   "effect-evidence/immutable-binding",
   "effect-evidence/normalized-data-only",
   "effect-reconciliation/authorization-before-credentials",
+  "effect-reconciliation/reference-before-credentials",
   "effect-reconciliation/replica-lease",
+  "effect-reconciliation/stale-attempt-fence",
   "effect-reconciliation/normalized-evidence",
   "effect-reconciliation/safe-health-failure",
   "effect-reconciliation/tenant-scope",
