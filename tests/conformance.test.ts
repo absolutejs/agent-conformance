@@ -11,6 +11,7 @@ import {
   runEffectAdapterExecutionConformance,
   runEffectAdapterInstallationConformance,
   runEffectEvidenceConformance,
+  runEffectReconciliationRuntimeConformance,
   runEffectRecoveryConformance,
   runExecutionConformance,
   runMcpConformance,
@@ -202,6 +203,19 @@ describe("agent conformance runners", () => {
       evidenceBindingCannotChange: yes,
       normalizedEvidenceExcludesRawPayload: yes,
       signaturePrecedesPersistence: yes,
+    }));
+
+    expect(result.failed).toBe(0);
+    expect(result.passed).toBe(4);
+  });
+
+  test("covers leased provider-query reconciliation", async () => {
+    const yes = async () => true;
+    const result = await runEffectReconciliationRuntimeConformance(() => ({
+      authorizationPrecedesQueryCredentials: yes,
+      failuresRetainOnlySafeHealthCodes: yes,
+      queryEvidenceIsNormalized: yes,
+      replicaLeasePreventsDuplicateQuery: yes,
     }));
 
     expect(result.failed).toBe(0);

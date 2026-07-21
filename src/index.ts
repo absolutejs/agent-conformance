@@ -620,6 +620,51 @@ export const runEffectEvidenceConformance = async (
   ]);
 };
 
+export type EffectReconciliationRuntimeConformanceHarness = {
+  authorizationPrecedesQueryCredentials: () => Promise<boolean>;
+  failuresRetainOnlySafeHealthCodes: () => Promise<boolean>;
+  queryEvidenceIsNormalized: () => Promise<boolean>;
+  replicaLeasePreventsDuplicateQuery: () => Promise<boolean>;
+};
+
+export const runEffectReconciliationRuntimeConformance = async (
+  create: () =>
+    | EffectReconciliationRuntimeConformanceHarness
+    | Promise<EffectReconciliationRuntimeConformanceHarness>,
+) => {
+  const check = async (
+    name: string,
+    assertion: keyof EffectReconciliationRuntimeConformanceHarness,
+    failure: string,
+  ) =>
+    scenario(name, async () => {
+      if (!(await (await create())[assertion]())) throw new Error(failure);
+    });
+
+  return report("agent-effect-reconciliation-runtime", [
+    await check(
+      "effect-reconciliation/authorization-before-credentials",
+      "authorizationPrecedesQueryCredentials",
+      "A provider query resolved credentials before installation authorization",
+    ),
+    await check(
+      "effect-reconciliation/replica-lease",
+      "replicaLeasePreventsDuplicateQuery",
+      "Concurrent reconciliation workers queried the same effect twice",
+    ),
+    await check(
+      "effect-reconciliation/normalized-evidence",
+      "queryEvidenceIsNormalized",
+      "Provider query payload data crossed the normalized evidence boundary",
+    ),
+    await check(
+      "effect-reconciliation/safe-health-failure",
+      "failuresRetainOnlySafeHealthCodes",
+      "A provider failure retained credential or raw error material",
+    ),
+  ]);
+};
+
 export type ControlConformanceHarness = {
   disabled: (agentId: string) => Promise<boolean>;
   revoke: (agentId: string) => Promise<void>;
@@ -1002,6 +1047,10 @@ export const conformanceCatalog = [
   "effect-evidence/delivery-dedup-resume",
   "effect-evidence/immutable-binding",
   "effect-evidence/normalized-data-only",
+  "effect-reconciliation/authorization-before-credentials",
+  "effect-reconciliation/replica-lease",
+  "effect-reconciliation/normalized-evidence",
+  "effect-reconciliation/safe-health-failure",
   "control/kill-switch-first",
   "discovery/signed-descriptor",
   "discovery/deterministic-search",
