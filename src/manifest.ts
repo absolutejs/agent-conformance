@@ -12,6 +12,7 @@ export const manifest = defineManifest<Record<never, never>, Catalog>()({
     intents: [
       "test agent authorization",
       "attack agent protocol boundaries",
+      "test unknown effect recovery",
       "certify an agent host",
     ],
     keywords: [
@@ -20,6 +21,7 @@ export const manifest = defineManifest<Record<never, never>, Catalog>()({
       "security",
       "replay",
       "authorization",
+      "reconciliation",
       "ci",
     ],
     protocols: ["MCP", "A2A 1.0", "OAuth 2.0", "AuthZEN"],

@@ -10,6 +10,7 @@ import {
   runEffectAdapterRegistryConformance,
   runEffectAdapterExecutionConformance,
   runEffectAdapterInstallationConformance,
+  runEffectRecoveryConformance,
   runExecutionConformance,
   runMcpConformance,
   runTaskConformance,
@@ -175,6 +176,21 @@ describe("agent conformance runners", () => {
 
     expect(result.failed).toBe(0);
     expect(result.passed).toBe(5);
+  });
+
+  test("covers evidence-bound unknown-effect recovery", async () => {
+    const yes = async () => true;
+    const result = await runEffectRecoveryConformance(() => ({
+      authorizationPrecedesEvidenceVerification: yes,
+      concurrentResolutionHasOneWinner: yes,
+      crossTenantResolutionIsRejected: yes,
+      invalidEvidenceLeavesEffectUnknown: yes,
+      reconciliationHistoryIsRetained: yes,
+      retryRequiresConfirmedNotApplied: yes,
+    }));
+
+    expect(result.failed).toBe(0);
+    expect(result.passed).toBe(6);
   });
 
   test("emits a deterministic signed certification artifact", async () => {

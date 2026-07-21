@@ -512,6 +512,63 @@ export const runEffectAdapterExecutionConformance = async (
   ]);
 };
 
+export type EffectRecoveryConformanceHarness = {
+  authorizationPrecedesEvidenceVerification: () => Promise<boolean>;
+  concurrentResolutionHasOneWinner: () => Promise<boolean>;
+  crossTenantResolutionIsRejected: () => Promise<boolean>;
+  invalidEvidenceLeavesEffectUnknown: () => Promise<boolean>;
+  reconciliationHistoryIsRetained: () => Promise<boolean>;
+  retryRequiresConfirmedNotApplied: () => Promise<boolean>;
+};
+
+export const runEffectRecoveryConformance = async (
+  create: () =>
+    | EffectRecoveryConformanceHarness
+    | Promise<EffectRecoveryConformanceHarness>,
+) => {
+  const check = async (
+    name: string,
+    assertion: keyof EffectRecoveryConformanceHarness,
+    failure: string,
+  ) =>
+    scenario(name, async () => {
+      if (!(await (await create())[assertion]())) throw new Error(failure);
+    });
+
+  return report("agent-effect-recovery", [
+    await check(
+      "effect-recovery/authorization-before-evidence",
+      "authorizationPrecedesEvidenceVerification",
+      "Recovery evidence was accessed before operator authorization",
+    ),
+    await check(
+      "effect-recovery/tenant-fence",
+      "crossTenantResolutionIsRejected",
+      "A tenant reconciled another tenant's unknown effect",
+    ),
+    await check(
+      "effect-recovery/evidence-fail-closed",
+      "invalidEvidenceLeavesEffectUnknown",
+      "Invalid recovery evidence changed an unknown effect",
+    ),
+    await check(
+      "effect-recovery/concurrent-resolution",
+      "concurrentResolutionHasOneWinner",
+      "Concurrent recovery decisions both changed one unknown effect",
+    ),
+    await check(
+      "effect-recovery/explicit-retry-proof",
+      "retryRequiresConfirmedNotApplied",
+      "An ambiguous provider effect was retried without confirmed-not-applied evidence",
+    ),
+    await check(
+      "effect-recovery/append-only-history",
+      "reconciliationHistoryIsRetained",
+      "Recovery lost its actor, source, or evidence history",
+    ),
+  ]);
+};
+
 export type ControlConformanceHarness = {
   disabled: (agentId: string) => Promise<boolean>;
   revoke: (agentId: string) => Promise<void>;
@@ -884,6 +941,12 @@ export const conformanceCatalog = [
   "adapter-execution/context-binding",
   "adapter-execution/capability-binding",
   "adapter-execution/unknown-outcome",
+  "effect-recovery/authorization-before-evidence",
+  "effect-recovery/tenant-fence",
+  "effect-recovery/evidence-fail-closed",
+  "effect-recovery/concurrent-resolution",
+  "effect-recovery/explicit-retry-proof",
+  "effect-recovery/append-only-history",
   "control/kill-switch-first",
   "discovery/signed-descriptor",
   "discovery/deterministic-search",
