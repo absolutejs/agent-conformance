@@ -363,6 +363,7 @@ export type EffectAdapterRegistryConformanceHarness = {
   descriptorDriftDeactivates: () => Promise<boolean>;
   evidenceRevocationStopsExecution: () => Promise<boolean>;
   outOfScopeEffectIsRejected: () => Promise<boolean>;
+  reconciliationSetupIsValidated: () => Promise<boolean>;
   staleCertificationIsRejected: () => Promise<boolean>;
   uncertifiedActivationIsRejected: () => Promise<boolean>;
 };
@@ -406,6 +407,11 @@ export const runEffectAdapterRegistryConformance = async (
       "adapter-registry/evidence-revocation",
       "evidenceRevocationStopsExecution",
       "Execution continued after retained evidence became invalid",
+    ),
+    await check(
+      "adapter-registry/reconciliation-setup",
+      "reconciliationSetupIsValidated",
+      "A provider adapter registered without safe, complete reconciliation setup",
     ),
   ]);
 };

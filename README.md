@@ -19,8 +19,9 @@ assertConformance(report); // throws with the complete report when any case fail
 The runners return data rather than depending on a test framework, so they work
 inside Bun test, Vitest, Jest, CI scripts, or provider certification jobs.
 
-The effect-adapter suites separately prove global certification, tenant-scoped
-installation, and execution-time behavior. The execution suite verifies that
+The effect-adapter suites separately prove global certification,
+descriptor-driven reconciliation setup, tenant-scoped installation, and
+execution-time behavior. The execution suite verifies that
 authorization happens before secret resolution, only installed aliases are
 resolved, tenant/effect/destination/idempotency context reaches the driver,
 driver capabilities match the certified descriptor, and unknown provider

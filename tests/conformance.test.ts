@@ -143,12 +143,13 @@ describe("agent conformance runners", () => {
       descriptorDriftDeactivates: yes,
       evidenceRevocationStopsExecution: yes,
       outOfScopeEffectIsRejected: yes,
+      reconciliationSetupIsValidated: yes,
       staleCertificationIsRejected: yes,
       uncertifiedActivationIsRejected: yes,
     }));
 
     expect(result.failed).toBe(0);
-    expect(result.passed).toBe(5);
+    expect(result.passed).toBe(6);
   });
 
   test("covers tenant-scoped effect adapter installations", async () => {
