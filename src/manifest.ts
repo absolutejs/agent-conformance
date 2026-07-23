@@ -41,6 +41,8 @@ export const manifest = defineManifest<Record<never, never>, Catalog>()({
     agent_conformance_catalog: tool.runtime({
       annotations: { readOnlyHint: true },
       authorization: {
+        approval: "never",
+        audience: "authenticated",
         effects: ["read"],
         requiredScopes: ["conformance:read"],
       },
